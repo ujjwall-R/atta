@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'DM Sans', sans-serif;
+  color: #17221c;
+  background: #f7f8f6;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, textarea, select { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+::selection { background: #d9f36a; color: #20362a; }
+.font-display { font-family: 'Manrope', sans-serif; }
+.terminal-caret { box-shadow: 0 0 9px rgb(143 174 99 / 45%); }
+
+.matrix-board .matrix-quadrant {
+  background-image:
+    linear-gradient(to right, rgb(66 91 68 / 7%) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(66 91 68 / 7%) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+@media (min-width: 768px) {
+  .matrix-desktop-panel .matrix-board {
+    width: min(calc(100% - 5rem), max(260px, calc(100vh - 500px)));
+    margin: 1rem auto;
+  }
+}
+
+html.dark { color-scheme: dark; }
+html.dark body { background: #111713; color: #dce7dc; }
+.dark .app-shell { background: #111713; color: #dce7dc; }
+.dark .sidebar { background: #151c17; border-color: #2b382f; }
+.dark .topbar { background-color: rgb(17 23 19 / 92%); border-color: #2b382f; }
+.dark .app-shell .bg-canvas { background-color: #111713; }
+.dark .app-shell .bg-white,
+.dark .app-shell [class*="bg-white"] { background-color: #19221b; }
+.dark .app-shell [class*="bg-[#f"],
+.dark .app-shell [class*="bg-[#e"] { background-color: #202a22; }
+.dark .app-shell .bg-forest { background-color: #326b45; }
+.dark .app-shell .text-ink { color: #e0e9e0; }
+.dark .app-shell .text-muted,
+.dark .app-shell [class*="text-[#8"],
+.dark .app-shell [class*="text-[#9"] { color: #9ba99d; }
+.dark .app-shell [class*="text-[#4"],
+.dark .app-shell [class*="text-[#5"],
+.dark .app-shell [class*="text-[#6"],
+.dark .app-shell [class*="text-[#7"] { color: #aebcaf; }
+.dark .app-shell .text-forest { color: #9bc779; }
+.dark .app-shell .border-line,
+.dark .app-shell [class*="border-[#e"] { border-color: #344037; }
+.dark .app-shell .shadow-soft,
+.dark .app-shell .shadow-sm { box-shadow: 0 8px 30px rgb(0 0 0 / 18%); }
+.dark .app-shell .nav-item[aria-current="page"] { background: #25352a; color: #b5d49d; }
+.dark .app-shell .nav-item:hover { background: #202b23; }
+.dark .app-shell .border-white { border-color: #3b483e; }
+.dark .app-shell input,
+.dark .app-shell select,
+.dark .app-shell textarea { background-color: #19221b; color: #e0e9e0; }
+.dark .app-shell .mobile-nav { border-color: #2b382f; }
+.dark .matrix-board { background-color: #18221b; border-color: #3a493d; }
+.dark .matrix-board .matrix-quadrant {
+  background-image:
+    linear-gradient(to right, rgb(157 191 149 / 8%) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(157 191 149 / 8%) 1px, transparent 1px);
+}
+.dark .sidebar svg { filter: brightness(1.35) saturate(.8); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
