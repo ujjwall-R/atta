@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowRight, Check, Leaf, Mail } from 'lucide-react'
+import { ArrowRight, Leaf, LockKeyhole, UserRoundPlus } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Field } from '../../components/ui/Field'
 import { useAuth } from './AuthProvider'
@@ -14,15 +14,30 @@ function AntMark({ small = false }: { small?: boolean }) {
 export { AntMark }
 
 export function SignIn() {
-  const { signInWithGoogle, signInWithEmail } = useAuth()
+  const { signInWithGoogle, signInWithPassword, signUpWithPassword } = useAuth()
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   async function submit(event: FormEvent) {
-    event.preventDefault(); setError(''); setBusy(true)
-    try { await signInWithEmail(email); setSent(true) } catch (e) { setError(e instanceof Error ? e.message : 'Unable to send a sign-in link.') } finally { setBusy(false) }
+    event.preventDefault(); setError(''); setMessage('')
+    if (mode === 'signup' && password !== confirmPassword) { setError('Those passwords do not match.'); return }
+    setBusy(true)
+    try {
+      if (mode === 'signup') {
+        const needsConfirmation = await signUpWithPassword(email, password)
+        if (needsConfirmation) setMessage('Account request received. If email confirmation is enabled, confirm your address before signing in. Supabase email limits may apply.')
+      } else {
+        await signInWithPassword(email, password)
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : mode === 'signup' ? 'Unable to create your account.' : 'Unable to sign in.')
+    } finally { setBusy(false) }
   }
+  const switchMode = () => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setMessage('') }
   return <main className="grid min-h-screen bg-[#f7f8f6] lg:grid-cols-[1fr_.9fr]">
     <section className="relative hidden overflow-hidden bg-[#eaf0e6] p-12 lg:flex lg:flex-col lg:justify-between xl:p-16">
       <div className="relative z-10 flex items-center gap-3"><AntMark /><span className="font-display text-[23px] font-extrabold tracking-[-.06em] text-ink">atta<span className="text-[#8fa34c]">.</span></span></div>
@@ -32,12 +47,20 @@ export function SignIn() {
     </section>
     <section className="grid place-items-center p-6 sm:p-10"><div className="w-full max-w-[390px]">
       <div className="mb-10 flex items-center gap-2.5 lg:hidden"><AntMark small /><span className="font-display text-2xl font-extrabold tracking-[-.06em] text-ink">atta<span className="text-[#8fa34c]">.</span></span></div>
-      <p className="text-[11px] font-bold uppercase tracking-[.15em] text-[#879489]">A calmer way to plan</p><h2 className="mt-2 font-display text-3xl font-bold tracking-[-.04em] text-ink">Welcome to Atta</h2><p className="mt-2 text-sm leading-6 text-muted">Sign in to keep your priorities close, wherever you are.</p>
+      <p className="text-[11px] font-bold uppercase tracking-[.15em] text-[#879489]">A calmer way to plan</p><h2 className="mt-2 font-display text-3xl font-bold tracking-[-.04em] text-ink">{mode === 'signin' ? 'Welcome to Atta' : 'Create your account'}</h2><p className="mt-2 text-sm leading-6 text-muted">{mode === 'signin' ? 'Sign in with your email and password.' : 'Use your email address and choose a password.'}</p>
       <Button variant="secondary" size="lg" className="mt-7 w-full" onClick={() => { setError(''); void signInWithGoogle().catch((e: unknown) => setError(e instanceof Error ? e.message : 'Google sign in failed.')) }}><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.75 3.27-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.85 0-5.27-1.92-6.13-4.5H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.87 14.14A6.6 6.6 0 0 1 5.53 12c0-.74.13-1.46.34-2.14V7.02H2.18A11 11 0 0 0 1 12c0 1.78.43 3.46 1.18 4.98l3.69-2.84Z"/><path fill="#EA4335" d="M12 5.36c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.03 14.97 1 12 1a11 11 0 0 0-9.82 6.02l3.69 2.84c.86-2.58 3.28-4.5 6.13-4.5Z"/></svg>Continue with Google</Button>
-      <div className="my-5 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#a0a9a1]"><span className="h-px flex-1 bg-[#e6eae5]" /> or use email <span className="h-px flex-1 bg-[#e6eae5]" /></div>
-      {sent ? <div className="rounded-2xl border border-[#d8e8d6] bg-[#f1f7ef] p-4"><div className="flex items-center gap-2 text-sm font-semibold text-[#345e42]"><Check size={16} /> Check your inbox</div><p className="mt-1 text-xs leading-5 text-[#657667]">A sign-in link is on its way to {email}. You can close this tab after signing in.</p><button type="button" onClick={() => setSent(false)} className="mt-3 text-xs font-semibold text-forest hover:underline">Use a different email</button></div> : <form onSubmit={submit} className="space-y-3"><Field label="Email address" type="email" required placeholder="you@example.com" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /><Button size="lg" className="w-full" disabled={busy}>{busy ? 'Sending link…' : <><Mail size={15} /> Send a sign-in link <ArrowRight size={15} className="ml-auto" /></>}</Button></form>}
+      <div className="my-5 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#a0a9a1]"><span className="h-px flex-1 bg-[#e6eae5]" /> or use email and password <span className="h-px flex-1 bg-[#e6eae5]" /></div>
+      <form onSubmit={submit} className="space-y-3">
+        <Field label="Email address" type="email" required placeholder="you@example.com" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Field label="Password" type="password" required minLength={6} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} hint={mode === 'signup' ? 'At least 6 characters.' : undefined} value={password} onChange={(e) => setPassword(e.target.value)} />
+        {mode === 'signup' && <Field label="Confirm password" type="password" required minLength={6} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />}
+        <Button size="lg" className="w-full" disabled={busy}>{busy ? 'Please wait…' : mode === 'signin' ? <><LockKeyhole size={15} /> Sign in <ArrowRight size={15} className="ml-auto" /></> : <><UserRoundPlus size={15} /> Create account <ArrowRight size={15} className="ml-auto" /></>}</Button>
+      </form>
+      {message && <p role="status" className="mt-3 rounded-xl border border-[#d8e8d6] bg-[#f1f7ef] px-3 py-2 text-xs leading-5 text-[#526b55]">{message}</p>}
       {error && <p role="alert" className="mt-3 rounded-xl bg-[#fff0ee] px-3 py-2 text-xs text-[#a83f38]">{error}</p>}
-      <p className="mt-6 text-center text-[11px] leading-5 text-[#9aa39b]">By continuing, you agree to keep your attention on what matters.</p>
+      <p className="mt-4 text-center text-xs text-muted">{mode === 'signin' ? 'New to Atta?' : 'Already have an account?'} <button type="button" onClick={switchMode} className="font-semibold text-forest hover:underline">{mode === 'signin' ? 'Create an account' : 'Sign in'}</button></p>
+      {mode === 'signup' && <p className="mt-3 text-center text-[11px] leading-5 text-[#9aa39b]">Email confirmation may be required depending on your Supabase Auth settings.</p>}
+      <p className="mt-5 text-center text-[11px] leading-5 text-[#9aa39b]">By continuing, you agree to keep your attention on what matters.</p>
     </div></section>
   </main>
 }

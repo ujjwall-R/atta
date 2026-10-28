@@ -7,7 +7,8 @@ interface AuthValue {
   loading: boolean
   localMode: boolean
   signInWithGoogle: () => Promise<void>
-  signInWithEmail: (email: string) => Promise<void>
+  signInWithPassword: (email: string, password: string) => Promise<void>
+  signUpWithPassword: (email: string, password: string) => Promise<boolean>
   signOut: () => Promise<void>
 }
 
@@ -37,11 +38,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
       if (error) throw error
     },
-    signInWithEmail: async (email) => {
+    signInWithPassword: async (email, password) => {
       if (!supabase) return
-      const emailRedirectTo = `${window.location.origin}${window.location.pathname}`
-      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } })
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
+    },
+    signUpWithPassword: async (email, password) => {
+      if (!supabase) return false
+      const emailRedirectTo = `${window.location.origin}${window.location.pathname}`
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo } })
+      if (error) throw error
+      return !data.session
     },
     signOut: async () => { if (supabase) await supabase.auth.signOut() },
   }), [user, loading])
