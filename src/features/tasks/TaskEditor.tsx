@@ -68,9 +68,9 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
       <Field autoFocus label="Task" placeholder="What needs your attention?" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} />
       <TextArea label="Notes" placeholder="Add a little context (optional)" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
       <div className="rounded-2xl border border-line bg-[#fafbf9] p-4">
-        <div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-ink">Importance</p><p className="mt-0.5 text-xs text-muted">How much does this matter?</p></div><span className="rounded-lg bg-white px-2.5 py-1 text-sm font-semibold tabular-nums text-forest">{importance}</span></div>
+        <div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-ink">Importance</p><p className="mt-0.5 text-xs text-muted">How serious are the consequences if this is not done?</p></div><span className="rounded-lg bg-white px-2.5 py-1 text-sm font-semibold tabular-nums text-forest">{importance}</span></div>
         <input aria-label="Importance" type="range" min="0" max="100" value={importance} onChange={(e) => setImportance(Number(e.target.value))} className="mt-3 w-full accent-[#285c42]" />
-        <div className="mt-1 flex justify-between text-[10px] text-[#909a92]"><span>Less important</span><span>More important</span></div>
+        <div className="mt-1 flex justify-between text-[10px] text-[#909a92]"><span>Minimal impact</span><span>Serious impact</span></div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Deadline" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
@@ -84,7 +84,7 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
       {advanced && <div className="space-y-3 rounded-xl border border-line p-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Effort buffer (minutes)" type="number" min="0" max="100000" step="1" value={effortBuffer} onChange={(e) => setEffortBuffer(e.target.value)} hint="Extra time for unexpected delays, interruptions, or underestimated effort. Used when a deadline is set." />
-          <Field label="Growth rate (k)" type="number" min="0.1" max="20" step="0.1" value={growthRate} onChange={(e) => setGrowthRate(e.target.value)} hint="Higher values make urgency rise more sharply per day." />
+          <Field label="Growth rate (k)" type="number" min="0.1" max="20" step="0.1" value={growthRate} onChange={(e) => setGrowthRate(e.target.value)} hint="For deadline tasks, controls how quickly urgency rises as the safe start approaches. Higher k makes the rise steeper; it does not change consequence severity." />
         </div>
         <details className="group rounded-xl bg-[#f7f9f6] px-3 py-2.5">
           <summary className="cursor-pointer list-none text-xs font-semibold text-[#526057] marker:hidden">How the urgency curve works <span className="float-right font-mono text-[#849185] group-open:hidden">+</span><span className="float-right hidden font-mono text-[#849185] group-open:inline">−</span></summary>

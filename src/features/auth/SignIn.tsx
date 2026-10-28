@@ -14,7 +14,7 @@ function AntMark({ small = false }: { small?: boolean }) {
 export { AntMark }
 
 export function SignIn() {
-  const { signInWithGoogle, signInWithPassword, signUpWithPassword } = useAuth()
+  const { signInWithPassword, signUpWithPassword } = useAuth()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -48,8 +48,7 @@ export function SignIn() {
     <section className="grid place-items-center p-6 sm:p-10"><div className="w-full max-w-[390px]">
       <div className="mb-10 flex items-center gap-2.5 lg:hidden"><AntMark small /><span className="font-display text-2xl font-extrabold tracking-[-.06em] text-ink">atta<span className="text-[#8fa34c]">.</span></span></div>
       <p className="text-[11px] font-bold uppercase tracking-[.15em] text-[#879489]">A calmer way to plan</p><h2 className="mt-2 font-display text-3xl font-bold tracking-[-.04em] text-ink">{mode === 'signin' ? 'Welcome to Atta' : 'Create your account'}</h2><p className="mt-2 text-sm leading-6 text-muted">{mode === 'signin' ? 'Sign in with your email and password.' : 'Use your email address and choose a password.'}</p>
-      <Button variant="secondary" size="lg" className="mt-7 w-full" onClick={() => { setError(''); void signInWithGoogle().catch((e: unknown) => setError(e instanceof Error ? e.message : 'Google sign in failed.')) }}><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.75 3.27-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.85 0-5.27-1.92-6.13-4.5H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.87 14.14A6.6 6.6 0 0 1 5.53 12c0-.74.13-1.46.34-2.14V7.02H2.18A11 11 0 0 0 1 12c0 1.78.43 3.46 1.18 4.98l3.69-2.84Z"/><path fill="#EA4335" d="M12 5.36c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.03 14.97 1 12 1a11 11 0 0 0-9.82 6.02l3.69 2.84c.86-2.58 3.28-4.5 6.13-4.5Z"/></svg>Continue with Google</Button>
-      <div className="my-5 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#a0a9a1]"><span className="h-px flex-1 bg-[#e6eae5]" /> or use email and password <span className="h-px flex-1 bg-[#e6eae5]" /></div>
+      <div className="mt-7 mb-5 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#a0a9a1]"><span className="h-px flex-1 bg-[#e6eae5]" /> email and password <span className="h-px flex-1 bg-[#e6eae5]" /></div>
       <form onSubmit={submit} className="space-y-3">
         <Field label="Email address" type="email" required placeholder="you@example.com" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <Field label="Password" type="password" required minLength={6} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} hint={mode === 'signup' ? 'At least 6 characters.' : undefined} value={password} onChange={(e) => setPassword(e.target.value)} />
