@@ -7,7 +7,7 @@ import { Modal } from './components/ui/Modal'
 import { BatchView } from './features/batches/BatchView'
 import { useBatches } from './features/batches/useBatches'
 import { AuthProvider, useAuth } from './features/auth/AuthProvider'
-import { AntMark, SignIn } from './features/auth/SignIn'
+import { AboutAttaCard, AntMark, SignIn } from './features/auth/SignIn'
 import { MatrixView } from './features/matrix/MatrixView'
 import { TaskEditor } from './features/tasks/TaskEditor'
 import { TaskListView } from './features/tasks/TaskListView'
@@ -24,7 +24,7 @@ function formatToday(date: Date) {
 }
 
 function Dashboard() {
-  const { user, loading: authLoading, localMode, signOut } = useAuth()
+  const { user, loading: authLoading, localMode, signOut, showAboutAfterSignIn, dismissAboutAfterSignIn } = useAuth()
   const userId = user?.id ?? (localMode ? 'local-user' : '')
   const { tasks, isLoading, isError, error, refetch, create, update, remove } = useTasks(userId)
   const batchQuery = useBatches(userId)
@@ -41,6 +41,11 @@ function Dashboard() {
     const timer = window.setInterval(() => setNow(new Date()), 60_000)
     return () => window.clearInterval(timer)
   }, [])
+  useEffect(() => {
+    if (!showAboutAfterSignIn) return
+    setHelpOpen(true)
+    dismissAboutAfterSignIn()
+  }, [showAboutAfterSignIn, dismissAboutAfterSignIn])
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
     localStorage.setItem('atta.theme', darkMode ? 'dark' : 'light')
@@ -126,7 +131,8 @@ function Dashboard() {
     <Modal open={Boolean(pendingDrop)} onClose={() => setPendingDrop(null)} title="Adjust this deadline task?" description="Its urgency comes from the deadline, effort, and buffer. Choose how you want the drag to change it.">
       {pendingDrop && <div className="space-y-3"><div className="rounded-xl bg-[#f6f8f4] p-3"><p className="text-sm font-semibold text-ink">{pendingDrop.task.title}</p><p className="mt-1 text-xs text-muted">New urgency target: {Math.round(pendingDrop.urgency)}% · Importance: {pendingDrop.importance}</p></div><Button disabled={rescheduleWouldBeOverdue} className="w-full justify-between" onClick={() => { if (!rescheduledDeadline || rescheduleWouldBeOverdue) return; void update.mutateAsync({ id: pendingDrop.task.id, patch: { deadline: rescheduledDeadline, importance: pendingDrop.importance } }).catch((e: unknown) => setActionError(e instanceof Error ? e.message : 'Could not reschedule this task.')); setPendingDrop(null) }}>Reschedule deadline <ArrowRight size={15} /></Button>{rescheduleWouldBeOverdue && <p className="rounded-xl bg-[#fff7e9] px-3 py-2 text-xs leading-5 text-[#866c3b]">That urgency target would put the deadline in the past. Review effort or urgency settings to keep the deadline valid.</p>}<Button variant="secondary" className="w-full justify-between" onClick={() => { setEditingTask({ ...pendingDrop.task, importance: pendingDrop.importance }); setEditorOpen(true); setPendingDrop(null) }}>Review urgency settings <ArrowRight size={15} /></Button><Button variant="ghost" className="w-full" onClick={() => setPendingDrop(null)}>Cancel</Button></div>}
     </Modal>
-    <Modal open={helpOpen} onClose={() => setHelpOpen(false)} title="A few helpful shortcuts" description="Keep your hands on the work.">
+    <Modal open={helpOpen} onClose={() => setHelpOpen(false)} title="About Atta">
+      <div className="mb-4"><AboutAttaCard /></div>
       <div className="space-y-2 text-sm"><div className="flex items-center justify-between rounded-xl bg-[#f7f8f6] px-3 py-2.5"><span className="text-[#526057]">Add a task</span><kbd className="rounded-md border border-[#dce2dc] bg-white px-2 py-1 text-xs text-ink">N</kbd></div><div className="flex items-center justify-between rounded-xl bg-[#f7f8f6] px-3 py-2.5"><span className="text-[#526057]">Quick add</span><kbd className="rounded-md border border-[#dce2dc] bg-white px-2 py-1 text-xs text-ink">⌘ / Ctrl + K</kbd></div><div className="flex items-center justify-between rounded-xl bg-[#f7f8f6] px-3 py-2.5"><span className="text-[#526057]">Search the task list</span><kbd className="rounded-md border border-[#dce2dc] bg-white px-2 py-1 text-xs text-ink">/</kbd></div></div>
       <div className="mt-4 flex items-start gap-2 rounded-xl border border-[#e5ebe2] bg-[#f7faf5] p-3 text-xs leading-5 text-[#68796a]"><Check size={14} className="mt-0.5 shrink-0 text-forest" />Urgency updates on this device while Atta is open. It is calculated from your deadlines; no background jobs are needed.</div>
     </Modal>

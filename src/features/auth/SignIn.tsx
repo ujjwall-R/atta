@@ -13,6 +13,15 @@ function AntMark({ small = false }: { small?: boolean }) {
 
 export { AntMark }
 
+export function AboutAttaCard() {
+  return <section className="rounded-xl border border-[#e5ebe2] bg-[#f7faf5] p-3.5">
+    <img src="/atta-leafcutter-ant.jpg" alt="Leafcutter ant carrying a green leaf above its head" width="1200" height="800" loading="lazy" className="mb-3 h-36 w-full rounded-lg object-cover object-center" />
+    <p className="text-sm font-semibold text-ink">Inspired by leafcutter ants</p>
+    <p className="mt-1.5 text-xs leading-5 text-[#68796a]">Atta is a genus of leafcutter ants. Workers cut and carry leaves to grow a fungus garden that feeds the colony. Atta borrows that idea: coordinated, steady effort helps important work get done.</p>
+    <a href="https://urbanentomology.tamu.edu/urban-pests/ants/leaf_cutting/" target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-forest hover:underline">Learn about leafcutter ants</a>
+  </section>
+}
+
 export function SignIn() {
   const { signInWithPassword, signUpWithPassword } = useAuth()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
