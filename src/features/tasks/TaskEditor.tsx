@@ -3,7 +3,7 @@ import { ChevronDown, Clock3, Trash2 } from 'lucide-react'
 import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 import { Field, TextArea } from '../../components/ui/Field'
-import { DEFAULT_GROWTH_RATE } from '../../lib/urgency'
+import { DEFAULT_BUFFER_MINUTES, DEFAULT_GROWTH_RATE } from '../../lib/urgency'
 import { validateTaskDraft } from '../../lib/validation'
 import type { Task, TaskDraft } from '../../types/task'
 
@@ -31,6 +31,7 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
   const [manualUrgency, setManualUrgency] = useState(25)
   const [deadline, setDeadline] = useState('')
   const [effort, setEffort] = useState('60')
+  const [effortBuffer, setEffortBuffer] = useState(String(DEFAULT_BUFFER_MINUTES))
   const [growthRate, setGrowthRate] = useState(String(DEFAULT_GROWTH_RATE))
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
     setManualUrgency(task?.manual_urgency ?? 25)
     setDeadline(toLocalInput(task?.deadline))
     setEffort(task?.estimated_effort_minutes == null ? '60' : String(task.estimated_effort_minutes))
+    setEffortBuffer(String(task?.effort_buffer_minutes ?? DEFAULT_BUFFER_MINUTES))
     setGrowthRate(String(task?.urgency_growth_rate ?? DEFAULT_GROWTH_RATE))
     setAdvanced(false)
     setError('')
@@ -53,6 +55,7 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
       manual_urgency: manualUrgency, urgency_growth_rate: Number(growthRate) || DEFAULT_GROWTH_RATE,
       deadline: deadline ? new Date(deadline).toISOString() : null,
       estimated_effort_minutes: effort.trim() ? Number(effort) : null,
+      effort_buffer_minutes: effortBuffer.trim() ? Number(effortBuffer) : DEFAULT_BUFFER_MINUTES,
     }
     const validationError = validateTaskDraft(draft)
     if (validationError) { setError(validationError); return }
@@ -71,7 +74,7 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Deadline" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-        <Field label="Estimated effort" type="number" min="0" step="15" placeholder="60" value={effort} onChange={(e) => setEffort(e.target.value)} hint="Minutes to complete" />
+        <Field label="Estimated effort" type="number" min="0" step="1" placeholder="60" value={effort} onChange={(e) => setEffort(e.target.value)} hint="Any whole number of minutes" />
       </div>
       {!deadline && <div className="rounded-2xl border border-[#e6ede6] bg-[#f7faf6] p-4">
         <div className="mb-2 flex items-center justify-between"><div><p className="text-sm font-semibold text-ink">Starting urgency</p><p className="mt-0.5 text-xs text-muted">No deadline? Set the urgency yourself.</p></div><span className="text-sm font-semibold tabular-nums text-forest">{manualUrgency}</span></div>
@@ -80,7 +83,7 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
       <button type="button" onClick={() => setAdvanced(!advanced)} className="flex w-full items-center justify-between rounded-xl px-1 py-1 text-left text-sm font-medium text-muted hover:text-ink"><span className="flex items-center gap-2"><Clock3 size={15} /> Urgency settings</span><ChevronDown size={16} className={`transition-transform ${advanced ? 'rotate-180' : ''}`} /></button>
       {advanced && <div className="space-y-3 rounded-xl border border-line p-3">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Effort buffer (minutes)" type="number" min="0" step="15" value="30" readOnly hint="A 30-minute buffer is added before the deadline." />
+          <Field label="Effort buffer (minutes)" type="number" min="0" max="100000" step="1" value={effortBuffer} onChange={(e) => setEffortBuffer(e.target.value)} hint="Extra time for unexpected delays, interruptions, or underestimated effort. Used when a deadline is set." />
           <Field label="Growth rate (k)" type="number" min="0.1" max="20" step="0.1" value={growthRate} onChange={(e) => setGrowthRate(e.target.value)} hint="Higher values make urgency rise more sharply per day." />
         </div>
         <details className="group rounded-xl bg-[#f7f9f6] px-3 py-2.5">
@@ -88,7 +91,7 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
           <div className="mt-3 space-y-2.5 border-t border-line pt-3 text-xs leading-5 text-muted">
             <p>Atta uses a sigmoid curve so urgency increases gradually as the latest safe start approaches:</p>
             <code className="block overflow-x-auto rounded-lg bg-[#17221c] px-3 py-2 font-mono text-[11px] text-[#cce5b2]">U(t) = 100 / (1 + exp(−k × (t − d)))</code>
-            <p><span className="font-mono text-ink">t</span> is now, measured in days. <span className="font-mono text-ink">d</span> is the latest safe start: deadline minus estimated effort minus a 30-minute buffer. Missing effort defaults to 60 minutes. <span className="font-mono text-ink">k</span> is the growth rate you can adjust above.</p>
+            <p><span className="font-mono text-ink">t</span> is now, measured in days. <span className="font-mono text-ink">d</span> is the latest safe start: deadline minus estimated effort and the effort buffer. Missing effort defaults to 60 minutes; the buffer defaults to 30 minutes. <span className="font-mono text-ink">k</span> is the growth rate you can adjust above.</p>
             <p>After its deadline, an open task is set to 100 urgency. Without a deadline, Atta uses the manual urgency slider. Importance stays unchanged. Urgency is calculated on this device and refreshed while the app is open; the changing value is not saved to the database.</p>
           </div>
         </details>

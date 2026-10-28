@@ -10,13 +10,14 @@ export interface Task {
   urgency_growth_rate: number
   deadline: string | null
   estimated_effort_minutes: number | null
+  effort_buffer_minutes: number
   status: TaskStatus
   completed_at: string | null
   created_at: string
   updated_at: string
 }
 
-export type TaskDraft = Pick<Task, 'title' | 'description' | 'importance' | 'manual_urgency' | 'urgency_growth_rate' | 'deadline' | 'estimated_effort_minutes'>
+export type TaskDraft = Pick<Task, 'title' | 'description' | 'importance' | 'manual_urgency' | 'urgency_growth_rate' | 'deadline' | 'estimated_effort_minutes' | 'effort_buffer_minutes'>
 export type Quadrant = 'do' | 'schedule' | 'batch' | 'eliminate'
 
 export interface Batch {

@@ -34,11 +34,11 @@ npm run build     # production build
    VITE_SUPABASE_ANON_KEY=YOUR_PUBLISHABLE_OR_ANON_KEY
    ```
 
-3. In the Supabase SQL Editor, run [`supabase/migrations/20261029000100_initial_schema.sql`](supabase/migrations/20261029000100_initial_schema.sql). It creates the task and batch tables, indexes, update timestamp trigger, and row-level security policies. Each user can only read and change rows whose `user_id` matches their authenticated user ID.
+3. In the Supabase SQL Editor, run the SQL files in `supabase/migrations/` in filename order. Run [`20261029000100_initial_schema.sql`](supabase/migrations/20261029000100_initial_schema.sql) first, then [`20261029000200_task_effort_buffer.sql`](supabase/migrations/20261029000200_task_effort_buffer.sql). They create the schema and add the per-task effort buffer. Each user can only read and change rows whose `user_id` matches their authenticated user ID.
 4. Under **Authentication → URL Configuration**, set the Site URL to `https://atta.ujjwalraj.com`. Add these Redirect URLs:
    - `https://atta.ujjwalraj.com/*`
    - `http://localhost:5173/*`
-5. For email sign-in, enable the **Email** provider. Atta uses passwordless email links; make sure the Supabase email template includes the confirmation link.
+5. For email/password sign-in, enable the **Email** provider. New accounts require email confirmation by default; configure custom SMTP for reliable confirmation emails, or disable **Confirm email** for a private personal app where users do not need verified addresses.
 6. For Google sign-in, enable **Google** under **Authentication → Providers**. Create OAuth credentials in Google Cloud Console. Add the Supabase callback URL shown in the provider setup (usually `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`) to Google’s authorized redirect URIs. Add `https://atta.ujjwalraj.com` and `http://localhost:5173` as authorized JavaScript origins. Paste the Google client ID and secret into Supabase, then save.
 
 The frontend only needs the project URL and publishable/anon key. RLS is the data access boundary; do not disable it and do not use a service-role key in the browser.
@@ -63,7 +63,7 @@ DNS changes can take time to propagate. The existing `www.ujjwalraj.com` site is
 
 ## Product notes
 
-- Urgency uses UTC timestamps and day-based sigmoid growth. The midpoint is the latest safe start: deadline minus estimated effort minus a 30-minute buffer. Missing effort defaults to 60 minutes. Open overdue tasks are set to 100 urgency.
+- Urgency uses UTC timestamps and day-based sigmoid growth. The midpoint is the latest safe start: deadline minus estimated effort and the task's effort buffer. Effort defaults to 60 minutes and the editable effort buffer defaults to 30 minutes. Open overdue tasks are set to 100 urgency.
 - Tasks without deadlines use their saved manual urgency. Completed tasks stop being treated as overdue.
 - Urgency recalculates in memory every minute while the app is open; it is never persisted as a changing database value.
 - On desktop, drag matrix markers to adjust importance and manual urgency. Dragging a deadline-driven task along urgency opens a choice to reschedule its deadline or review urgency settings. On smaller screens, the matrix becomes quadrant cards.

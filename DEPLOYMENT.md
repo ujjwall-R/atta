@@ -15,7 +15,7 @@ Use this checklist to configure Supabase, deploy Atta with GitHub Pages, and con
 
    The environment variable keeps its `ANON_KEY` name for compatibility with the app, but use the publishable key value. Never use a Supabase secret or `service_role` key in frontend code. The publishable key is included in the browser bundle; Row Level Security protects the data.
 
-4. Open the Supabase **SQL Editor** and run [`supabase/migrations/20261029000100_initial_schema.sql`](supabase/migrations/20261029000100_initial_schema.sql). This creates the tables and row-level security policies.
+4. Open the Supabase **SQL Editor** and run the SQL files in `supabase/migrations/` in filename order. If you already ran the initial schema migration, run the next migration file once to add the effort buffer column.
 
 Supabase's [API key guide](https://supabase.com/docs/guides/getting-started/api-keys) explains where to find the values and why publishable keys belong in browser apps.
 
@@ -35,7 +35,7 @@ Supabase's [API key guide](https://supabase.com/docs/guides/getting-started/api-
    http://localhost:5173/*
    ```
 
-4. Under **Authentication → Sign In / Providers**, enable **Email**. Atta uses passwordless email links.
+4. Under **Authentication → Sign In / Providers**, enable the **Email** provider. Atta uses email and password. If email confirmation is enabled, account creation still requires an email; configure custom SMTP for reliable delivery.
 5. Google sign-in is optional. To enable it:
    - In Google Cloud Console, create an OAuth client with application type **Web application**.
    - Add these **Authorized JavaScript origins**:

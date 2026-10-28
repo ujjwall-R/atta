@@ -13,6 +13,10 @@ describe('calculateUrgency', () => {
     const input = { deadline: '2026-01-11T12:00:00.000Z', now: '2026-01-11T11:00:00.000Z' }
     expect(calculateUrgency({ ...input, growthRate: 2 })).toBeGreaterThan(calculateUrgency({ ...input, growthRate: 0.2 }))
   })
+  it('raises urgency sooner when the effort buffer is larger', () => {
+    const input = { deadline: '2026-01-11T12:00:00.000Z', estimatedEffortMinutes: 60, now: '2026-01-11T10:30:00.000Z' }
+    expect(calculateUrgency({ ...input, bufferMinutes: 60 })).toBeGreaterThan(calculateUrgency({ ...input, bufferMinutes: 30 }))
+  })
   it('returns maximum urgency for overdue tasks', () => {
     expect(calculateUrgency({ deadline: '2026-01-09T12:00:00Z', now: fixedNow })).toBe(100)
   })
@@ -30,11 +34,11 @@ describe('calculateUrgency', () => {
     expect(calculateUrgency({ now: fixedNow })).toBe(0)
   })
   it('can reschedule a task to its current target urgency', () => {
-    const deadline = urgencyToDeadline(50, 0.7, fixedNow.getTime(), 60)
-    const result = calculateUrgency({ deadline, growthRate: 0.7, estimatedEffortMinutes: 60, now: fixedNow })
+    const deadline = urgencyToDeadline(50, 0.7, fixedNow.getTime(), 60, 45)
+    const result = calculateUrgency({ deadline, growthRate: 0.7, estimatedEffortMinutes: 60, bufferMinutes: 45, now: fixedNow })
     expect(result).toBeCloseTo(50, 4)
-    const earlierInCurve = urgencyToDeadline(25, 0.7, fixedNow.getTime(), 60)
-    expect(calculateUrgency({ deadline: earlierInCurve, growthRate: 0.7, estimatedEffortMinutes: 60, now: fixedNow })).toBeCloseTo(25, 4)
+    const earlierInCurve = urgencyToDeadline(25, 0.7, fixedNow.getTime(), 60, 45)
+    expect(calculateUrgency({ deadline: earlierInCurve, growthRate: 0.7, estimatedEffortMinutes: 60, bufferMinutes: 45, now: fixedNow })).toBeCloseTo(25, 4)
   })
 })
 
@@ -49,5 +53,7 @@ describe('classification and validation', () => {
     expect(validateTaskDraft({ title: '  ' })).toContain('title')
     expect(validateTaskDraft({ title: 'Plan', importance: 101 })).toContain('Importance')
     expect(validateTaskDraft({ title: 'Plan', importance: 80 })).toBeNull()
+    expect(validateTaskDraft({ title: 'Plan', effort_buffer_minutes: -1 })).toContain('Effort buffer')
+    expect(validateTaskDraft({ title: 'Plan', effort_buffer_minutes: 45 })).toBeNull()
   })
 })

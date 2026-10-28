@@ -12,7 +12,7 @@ import { MatrixView } from './features/matrix/MatrixView'
 import { TaskEditor } from './features/tasks/TaskEditor'
 import { TaskListView } from './features/tasks/TaskListView'
 import { useTasks } from './features/tasks/useTasks'
-import { urgencyForTask, urgencyToDeadline } from './lib/urgency'
+import { DEFAULT_BUFFER_MINUTES, DEFAULT_EFFORT_MINUTES, urgencyForTask, urgencyToDeadline } from './lib/urgency'
 import type { Task, TaskDraft } from './types/task'
 import './index.css'
 
@@ -60,7 +60,7 @@ function Dashboard() {
   const openTaskCount = useMemo(() => tasks.filter((task) => task.status === 'open').length, [tasks])
   const urgencySum = useMemo(() => tasks.filter((task) => task.status === 'open').reduce((sum, task) => sum + urgencyForTask(task, now), 0), [tasks, now])
   const averageUrgency = openTaskCount ? Math.round(urgencySum / openTaskCount) : 0
-  const rescheduledDeadline = pendingDrop ? urgencyToDeadline(pendingDrop.urgency, pendingDrop.task.urgency_growth_rate, now.getTime(), pendingDrop.task.estimated_effort_minutes ?? 60) : null
+  const rescheduledDeadline = pendingDrop ? urgencyToDeadline(pendingDrop.urgency, pendingDrop.task.urgency_growth_rate, now.getTime(), pendingDrop.task.estimated_effort_minutes ?? DEFAULT_EFFORT_MINUTES, pendingDrop.task.effort_buffer_minutes ?? DEFAULT_BUFFER_MINUTES) : null
   const rescheduleWouldBeOverdue = rescheduledDeadline !== null && new Date(rescheduledDeadline).getTime() <= now.getTime()
 
   if (authLoading) return <div className="grid min-h-screen place-items-center bg-canvas"><div className="flex items-center gap-3 text-sm text-muted"><span className="h-5 w-5 animate-spin rounded-full border-2 border-[#cad7cb] border-t-forest" />Finding your space…</div></div>

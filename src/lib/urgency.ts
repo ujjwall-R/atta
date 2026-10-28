@@ -52,6 +52,7 @@ export function urgencyForTask(task: Task, now: Date | number = Date.now()): num
   return calculateUrgency({
     deadline: task.deadline,
     estimatedEffortMinutes: task.estimated_effort_minutes,
+    bufferMinutes: task.effort_buffer_minutes ?? DEFAULT_BUFFER_MINUTES,
     growthRate: task.urgency_growth_rate,
     manualUrgency: task.manual_urgency,
     status: task.status,
@@ -59,10 +60,10 @@ export function urgencyForTask(task: Task, now: Date | number = Date.now()): num
   })
 }
 
-export function urgencyToDeadline(targetUrgency: number, growthRate: number, now = Date.now(), effortMinutes = DEFAULT_EFFORT_MINUTES): string {
+export function urgencyToDeadline(targetUrgency: number, growthRate: number, now = Date.now(), effortMinutes = DEFAULT_EFFORT_MINUTES, bufferMinutes = DEFAULT_BUFFER_MINUTES): string {
   const urgency = clamp(targetUrgency, 1, 99) / 100
   const rate = validNumber(growthRate) && growthRate > 0 ? growthRate : DEFAULT_GROWTH_RATE
   const logOdds = Math.log(urgency / (1 - urgency))
   const latestSafeStart = now - (logOdds / rate) * DAY_MS
-  return new Date(latestSafeStart + (Math.max(0, effortMinutes) + DEFAULT_BUFFER_MINUTES) * 60_000).toISOString()
+  return new Date(latestSafeStart + (Math.max(0, effortMinutes) + Math.max(0, bufferMinutes)) * 60_000).toISOString()
 }
