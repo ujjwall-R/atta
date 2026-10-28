@@ -19,7 +19,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase) return
     void supabase.auth.getSession().then(({ data }) => { setUser(data.session?.user ?? null); setLoading(false) }).catch(() => setLoading(false))
-    const { data } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => setUser(session?.user ?? null))
+    const { data } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
     return () => data.subscription.unsubscribe()
   }, [])
   const value = useMemo<AuthValue>(() => ({
@@ -28,12 +31,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localMode: !isSupabaseConfigured,
     signInWithGoogle: async () => {
       if (!supabase) return
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}${window.location.pathname}#/` } })
+      // Keep the callback URL free of a hash: Supabase uses the URL fragment
+      // or query string to return the auth session, while HashRouter owns it.
+      const redirectTo = `${window.location.origin}${window.location.pathname}`
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
       if (error) throw error
     },
     signInWithEmail: async (email) => {
       if (!supabase) return
-      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}#/` } })
+      const emailRedirectTo = `${window.location.origin}${window.location.pathname}`
+      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } })
       if (error) throw error
     },
     signOut: async () => { if (supabase) await supabase.auth.signOut() },
