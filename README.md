@@ -34,7 +34,7 @@ npm run build     # production build
    VITE_SUPABASE_ANON_KEY=YOUR_PUBLISHABLE_OR_ANON_KEY
    ```
 
-3. In the Supabase SQL Editor, run the SQL files in `supabase/migrations/` in filename order. Run [`20261029000100_initial_schema.sql`](supabase/migrations/20261029000100_initial_schema.sql) first, then [`20261029000200_task_effort_buffer.sql`](supabase/migrations/20261029000200_task_effort_buffer.sql), then [`20261031000100_task_urgency_lead.sql`](supabase/migrations/20261031000100_task_urgency_lead.sql). They create the schema and add the effort buffer and urgency lead time. Each user can only read and change rows whose `user_id` matches their authenticated user ID.
+3. In the Supabase SQL Editor, run the SQL files in `supabase/migrations/` in filename order. Run [`20261029000100_initial_schema.sql`](supabase/migrations/20261029000100_initial_schema.sql) first, then [`20261029000200_task_effort_buffer.sql`](supabase/migrations/20261029000200_task_effort_buffer.sql). They create the schema and add the per-task effort buffer. Each user can only read and change rows whose `user_id` matches their authenticated user ID.
 4. Under **Authentication → URL Configuration**, set the Site URL to `https://atta.ujjwalraj.com`. Add these Redirect URLs:
    - `https://atta.ujjwalraj.com/*`
    - `http://localhost:5173/*`
@@ -63,7 +63,7 @@ DNS changes can take time to propagate. The existing `www.ujjwalraj.com` site is
 
 ## Product notes
 
-- Urgency uses UTC timestamps and day-based sigmoid growth. The curve midpoint is the latest safe start (deadline minus estimated effort and the task's effort buffer), shifted earlier by the task's urgency lead time. Effort defaults to 60 minutes, the editable effort buffer to 30 minutes, and the urgency lead time to 24 hours. The selected starting urgency is a floor; the deadline curve can raise it. Open overdue tasks are set to 100 urgency.
+- Urgency uses UTC timestamps and day-based sigmoid growth. The curve midpoint is the latest safe start: deadline minus estimated effort and the task's effort buffer. Effort defaults to 60 minutes and the editable effort buffer to 30 minutes. The selected starting urgency is the curve's lower baseline; deadline urgency rises from it toward 100. Open overdue tasks are set to 100 urgency.
 - Tasks without deadlines use their saved starting urgency as a stable manual value. Completed tasks stop being treated as overdue.
 - Urgency recalculates in memory every minute while the app is open; it is never persisted as a changing database value.
 - On desktop, drag matrix markers to adjust importance and manual urgency. Dragging a deadline-driven task along urgency opens a choice to reschedule its deadline or review urgency settings. On smaller screens, the matrix becomes quadrant cards.

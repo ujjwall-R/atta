@@ -11,15 +11,23 @@ const quadrantMeta: Record<Quadrant, { title: string; action: string; guide: str
   eliminate: { title: 'Consider removing', action: 'Neither urgent nor important', guide: 'Drop it if the value is low.', tone: 'bg-[#f8f8f6]', dot: 'bg-[#a98cff]', accent: '#a98cff' },
 }
 
+function insetPosition(value: number) {
+  const offset = 24 - value * 0.48
+  const operator = offset < 0 ? '-' : '+'
+  return `calc(${value}% ${operator} ${Math.abs(offset)}px)`
+}
+
 function TaskDot({ task, urgency, onClick }: { task: Task; urgency: number; onClick: () => void }) {
   const quadrant = quadrantMeta[getQuadrant(urgency, task.importance)]
   const high = urgency >= 75 && task.importance >= 75
+  const labelX = urgency < 20 ? 'left-1/2 translate-x-0' : urgency > 80 ? 'right-1/2 translate-x-0' : 'left-1/2 -translate-x-1/2'
+  const labelY = task.importance > 80 ? 'top-full mt-2' : 'bottom-full mb-2'
   return <button draggable onDragStart={(event) => { event.dataTransfer.setData('text/plain', task.id); event.dataTransfer.effectAllowed = 'move' }} onClick={onClick}
     aria-label={`${task.title}, urgency ${Math.round(urgency)}, importance ${task.importance}. Drag to adjust.`} title={`${task.title} · ${Math.round(urgency)} urgency · ${task.importance} importance`}
     className="group absolute z-10 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white bg-white/75 shadow-sm transition-[left,top,transform] duration-500 ease-out hover:z-20 hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime"
-    style={{ left: `${urgency}%`, top: `${100 - task.importance}%`, boxShadow: high ? `0 0 0 2px ${quadrant.accent}, 0 0 12px ${quadrant.accent}88` : undefined }}>
+    style={{ left: insetPosition(urgency), top: insetPosition(100 - task.importance), boxShadow: high ? `0 0 0 2px ${quadrant.accent}, 0 0 12px ${quadrant.accent}88` : undefined }}>
     <span className={`h-3 w-3 rounded-full ${quadrant.dot} ${high ? 'h-3.5 w-3.5' : ''}`} />
-    <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-[#20362a] px-2.5 py-1.5 text-[11px] font-medium text-white shadow-md group-hover:block group-focus-visible:block">{task.title}<span className="ml-2 text-white/65">{Math.round(urgency)}%</span></span>
+    <span className={`pointer-events-none absolute ${labelY} ${labelX} hidden whitespace-nowrap rounded-lg bg-[#20362a] px-2.5 py-1.5 text-[11px] font-medium text-white shadow-md group-hover:block group-focus-visible:block`}>{task.title}<span className="ml-2 text-white/65">{Math.round(urgency)}%</span></span>
   </button>
 }
 
@@ -36,8 +44,11 @@ export function MatrixView({ tasks, now, onEdit, onDrop, onAdd }: { tasks: Task[
     const task = tasks.find((item) => item.id === taskId)
     const rect = event.currentTarget.getBoundingClientRect()
     if (!task || !rect.width || !rect.height) return
-    const urgency = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100))
-    const importance = Math.min(100, Math.max(0, 100 - ((event.clientY - rect.top) / rect.height) * 100))
+    const inset = 24
+    const plotWidth = Math.max(1, rect.width - inset * 2)
+    const plotHeight = Math.max(1, rect.height - inset * 2)
+    const urgency = Math.min(100, Math.max(0, ((event.clientX - rect.left - inset) / plotWidth) * 100))
+    const importance = Math.min(100, Math.max(0, 100 - ((event.clientY - rect.top - inset) / plotHeight) * 100))
     onDrop(task, urgency, importance)
   }
 
@@ -51,7 +62,7 @@ export function MatrixView({ tasks, now, onEdit, onDrop, onAdd }: { tasks: Task[
       <div className="flex items-center gap-1.5"><CalendarDays size={13} /><span>Urgency recalculates every minute</span></div>
     </div>
     <section className="matrix-guide mb-4 rounded-2xl border border-line bg-white p-3.5 shadow-sm sm:p-4" aria-label="How to read the matrix">
-      <div className="mb-3 flex items-start gap-2"><span className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#7fa477]">guide /</span><p className="text-xs leading-5 text-muted">Deadline tasks move right as urgency rises ahead of their latest safe start. Set a starting urgency, then tune the lead time and growth rate in urgency settings. Importance stays fixed; tasks without deadlines keep their starting urgency.</p></div>
+      <div className="mb-3 flex items-start gap-2"><span className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#7fa477]">guide /</span><p className="text-xs leading-5 text-muted">Deadline tasks move right as urgency rises toward their latest safe start. Set a starting urgency and growth rate in urgency settings. Importance stays fixed; tasks without deadlines keep their starting urgency.</p></div>
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{quadrants.map((key) => <div key={key} className="flex items-start gap-2.5 rounded-xl bg-[#f7f9f6] px-3 py-2.5"><i className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${quadrantMeta[key].dot}`} /><div><p className="text-xs font-semibold text-ink">{quadrantMeta[key].title}</p><p className="mt-0.5 text-[11px] leading-4 text-muted">{quadrantMeta[key].guide}</p>{key === 'eliminate' && <details className="group mt-1"><summary className="cursor-pointer list-none font-mono text-[10px] text-[#7fa477]">read the rule</summary><p className="mt-1 text-[11px] leading-4 text-muted">Try to put as many things as you can in this quadrant. Don’t do things that don’t need to be done. Better to do nothing than to do this thing.</p></details>}</div></div>)}</div>
     </section>
     <div className="matrix-desktop-panel hidden overflow-hidden rounded-[22px] border border-[#e5eae4] bg-white shadow-soft md:block">

@@ -3,14 +3,12 @@ import type { Quadrant, Task } from '../types/task'
 export const DEFAULT_EFFORT_MINUTES = 60
 export const DEFAULT_BUFFER_MINUTES = 30
 export const DEFAULT_GROWTH_RATE = 0.7
-export const DEFAULT_URGENCY_LEAD_HOURS = 24
 const DAY_MS = 86_400_000
 
 export interface UrgencyInput {
   deadline?: string | null
   estimatedEffortMinutes?: number | null
   growthRate?: number | null
-  leadHours?: number | null
   manualUrgency?: number | null
   status?: string
   now?: string | number | Date
@@ -34,15 +32,14 @@ export function calculateUrgency(input: UrgencyInput): number {
     ? input.estimatedEffortMinutes : DEFAULT_EFFORT_MINUTES
   const buffer = validNumber(input.bufferMinutes) && input.bufferMinutes >= 0
     ? input.bufferMinutes : DEFAULT_BUFFER_MINUTES
-  const leadHours = validNumber(input.leadHours) && input.leadHours >= 0
-    ? input.leadHours : DEFAULT_URGENCY_LEAD_HOURS
-  const midpoint = deadline - (effort + buffer) * 60_000 - leadHours * 3_600_000
+  const midpoint = deadline - (effort + buffer) * 60_000
   const daysFromMidpoint = (now - midpoint) / DAY_MS
   const rate = validNumber(input.growthRate) && input.growthRate > 0 ? input.growthRate : DEFAULT_GROWTH_RATE
   const exponent = Math.max(-700, Math.min(700, -rate * daysFromMidpoint))
   const result = 100 / (1 + Math.exp(exponent))
-  // The selected starting urgency is a floor; deadline timing may raise the score above it.
-  return clamp(Math.max(baseline, Number.isFinite(result) ? result : 0))
+  // The selected urgency is the curve's lower baseline; deadlines raise it toward 100.
+  const curve = Number.isFinite(result) ? result / 100 : 0
+  return clamp(baseline + (100 - baseline) * curve)
 }
 
 export function getQuadrant(urgency: number, importance: number, threshold = 50): Quadrant {
@@ -60,18 +57,20 @@ export function urgencyForTask(task: Task, now: Date | number = Date.now()): num
     estimatedEffortMinutes: task.estimated_effort_minutes,
     bufferMinutes: task.effort_buffer_minutes ?? DEFAULT_BUFFER_MINUTES,
     growthRate: task.urgency_growth_rate,
-    leadHours: task.urgency_lead_hours ?? DEFAULT_URGENCY_LEAD_HOURS,
     manualUrgency: task.manual_urgency,
     status: task.status,
     now,
   })
 }
 
-export function urgencyToDeadline(targetUrgency: number, growthRate: number, now = Date.now(), effortMinutes = DEFAULT_EFFORT_MINUTES, bufferMinutes = DEFAULT_BUFFER_MINUTES, leadHours = DEFAULT_URGENCY_LEAD_HOURS, baseline = 0): string {
+export function urgencyToDeadline(targetUrgency: number, growthRate: number, now = Date.now(), effortMinutes = DEFAULT_EFFORT_MINUTES, bufferMinutes = DEFAULT_BUFFER_MINUTES, baseline = 0): string {
   const floor = clamp(baseline)
-  const urgency = clamp(targetUrgency, Math.max(1, floor), 99) / 100
+  if (floor >= 100) return new Date(now + Math.max(0, effortMinutes) * 60_000 + Math.max(0, bufferMinutes) * 60_000 + DAY_MS).toISOString()
+  const urgency = clamp(targetUrgency, floor + 0.0001, 99.999)
+  const curveValue = (urgency - floor) / (100 - floor)
   const rate = validNumber(growthRate) && growthRate > 0 ? growthRate : DEFAULT_GROWTH_RATE
-  const logOdds = Math.log(urgency / (1 - urgency))
+  const probability = clamp(curveValue, 0.000001, 0.999999)
+  const logOdds = Math.log(probability / (1 - probability))
   const latestSafeStart = now - (logOdds / rate) * DAY_MS
-  return new Date(latestSafeStart + (Math.max(0, effortMinutes) + Math.max(0, bufferMinutes)) * 60_000 + Math.max(0, leadHours) * 3_600_000).toISOString()
+  return new Date(latestSafeStart + (Math.max(0, effortMinutes) + Math.max(0, bufferMinutes)) * 60_000).toISOString()
 }

@@ -3,7 +3,7 @@ import { ChevronDown, Clock3, Trash2 } from 'lucide-react'
 import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 import { Field, TextArea } from '../../components/ui/Field'
-import { DEFAULT_BUFFER_MINUTES, DEFAULT_GROWTH_RATE, DEFAULT_URGENCY_LEAD_HOURS } from '../../lib/urgency'
+import { DEFAULT_BUFFER_MINUTES, DEFAULT_GROWTH_RATE } from '../../lib/urgency'
 import { validateTaskDraft } from '../../lib/validation'
 import type { Task, TaskDraft } from '../../types/task'
 
@@ -33,7 +33,6 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
   const [effort, setEffort] = useState('60')
   const [effortBuffer, setEffortBuffer] = useState(String(DEFAULT_BUFFER_MINUTES))
   const [growthRate, setGrowthRate] = useState(String(DEFAULT_GROWTH_RATE))
-  const [urgencyLeadHours, setUrgencyLeadHours] = useState(String(DEFAULT_URGENCY_LEAD_HOURS))
 
   useEffect(() => {
     if (!open) return
@@ -45,7 +44,6 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
     setEffort(task?.estimated_effort_minutes == null ? '60' : String(task.estimated_effort_minutes))
     setEffortBuffer(String(task?.effort_buffer_minutes ?? DEFAULT_BUFFER_MINUTES))
     setGrowthRate(String(task?.urgency_growth_rate ?? DEFAULT_GROWTH_RATE))
-    setUrgencyLeadHours(String(task?.urgency_lead_hours ?? DEFAULT_URGENCY_LEAD_HOURS))
     setAdvanced(false)
     setError('')
   }, [open, task])
@@ -55,7 +53,6 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
     const draft: TaskDraft = {
       title: title.trim(), description: description.trim() || null, importance,
       manual_urgency: manualUrgency, urgency_growth_rate: Number(growthRate) || DEFAULT_GROWTH_RATE,
-      urgency_lead_hours: Number(urgencyLeadHours) || 0,
       deadline: deadline ? new Date(deadline).toISOString() : null,
       estimated_effort_minutes: effort.trim() ? Number(effort) : null,
       effort_buffer_minutes: effortBuffer.trim() ? Number(effortBuffer) : DEFAULT_BUFFER_MINUTES,
@@ -88,15 +85,14 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Effort buffer (minutes)" type="number" min="0" max="100000" step="1" value={effortBuffer} onChange={(e) => setEffortBuffer(e.target.value)} hint="Extra time for unexpected delays, interruptions, or underestimated effort. Used when a deadline is set." />
           <Field label="Growth rate (k)" type="number" min="0.1" max="20" step="0.1" value={growthRate} onChange={(e) => setGrowthRate(e.target.value)} hint="Controls how sharply the deadline curve rises around its midpoint. Higher k makes the rise steeper." />
-          {deadline && <Field label="Urgency lead time (hours)" type="number" min="0" max="8760" step="1" value={urgencyLeadHours} onChange={(e) => setUrgencyLeadHours(e.target.value)} hint="Moves the curve earlier. At the default 24 hours, the curve reaches 50 a day before the latest safe start." />}
         </div>
         <details className="group rounded-xl bg-[#f7f9f6] px-3 py-2.5">
           <summary className="cursor-pointer list-none text-xs font-semibold text-[#526057] marker:hidden">How the urgency curve works <span className="float-right font-mono text-[#849185] group-open:hidden">+</span><span className="float-right hidden font-mono text-[#849185] group-open:inline">−</span></summary>
           <div className="mt-3 space-y-2.5 border-t border-line pt-3 text-xs leading-5 text-muted">
-            <p>Atta uses a sigmoid curve so urgency increases as the latest safe start approaches:</p>
-            <code className="block overflow-x-auto rounded-lg bg-[#17221c] px-3 py-2 font-mono text-[11px] text-[#cce5b2]">U(t) = 100 / (1 + exp(−k × (t − d)))</code>
-            <p><span className="font-mono text-ink">t</span> is now, measured in days. <span className="font-mono text-ink">d</span> is the curve midpoint: the latest safe start (deadline minus estimated effort and the effort buffer) shifted earlier by the urgency lead time. Missing effort defaults to 60 minutes, the buffer to 30 minutes, and lead time to 24 hours. <span className="font-mono text-ink">k</span> controls the curve's steepness.</p>
-            <p>Your starting urgency is a floor for deadline tasks. The deadline curve raises urgency above it as time passes. Without a deadline, the selected starting urgency remains fixed. After its deadline, an open task is set to 100. Importance stays unchanged. Urgency is calculated on this device and refreshed while the app is open; the changing value is not saved to the database.</p>
+            <p>Atta uses a sigmoid curve to raise urgency from your selected starting value as the latest safe start approaches:</p>
+            <code className="block overflow-x-auto rounded-lg bg-[#17221c] px-3 py-2 font-mono text-[11px] text-[#cce5b2]">U(t) = U₀ + (100 − U₀) / (1 + exp(−k × (t − d)))</code>
+            <p><span className="font-mono text-ink">U₀</span> is your starting urgency. <span className="font-mono text-ink">t</span> is now, measured in days. <span className="font-mono text-ink">d</span> is the latest safe start: deadline minus estimated effort and the effort buffer. Missing effort defaults to 60 minutes and the buffer to 30 minutes. <span className="font-mono text-ink">k</span> controls how sharply the curve rises. At <span className="font-mono text-ink">d</span>, urgency is halfway between the starting value and 100.</p>
+            <p>Without a deadline, the selected starting urgency stays fixed. After its deadline, an open task is set to 100. Importance stays unchanged. Urgency is calculated on this device and refreshed while the app is open; the changing value is not saved to the database.</p>
           </div>
         </details>
       </div>}

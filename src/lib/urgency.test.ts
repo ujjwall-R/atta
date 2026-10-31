@@ -17,17 +17,16 @@ describe('calculateUrgency', () => {
     const input = { deadline: '2026-01-11T12:00:00.000Z', estimatedEffortMinutes: 60, now: '2026-01-11T10:30:00.000Z' }
     expect(calculateUrgency({ ...input, bufferMinutes: 60 })).toBeGreaterThan(calculateUrgency({ ...input, bufferMinutes: 30 }))
   })
-  it('uses the selected urgency as a floor for deadline tasks', () => {
-    const input = { deadline: '2026-01-10T16:00:00.000Z', estimatedEffortMinutes: 120, bufferMinutes: 30, leadHours: 0, now: fixedNow }
-    expect(calculateUrgency({ ...input, manualUrgency: 70 })).toBe(70)
-    expect(calculateUrgency({ ...input, manualUrgency: 25 })).toBeGreaterThan(25)
-  })
-  it('shifts the curve earlier with urgency lead time', () => {
+  it('uses the selected starting urgency as the lower curve baseline', () => {
     const input = { deadline: '2026-01-10T16:00:00.000Z', estimatedEffortMinutes: 120, bufferMinutes: 30, now: fixedNow }
-    const withoutLead = calculateUrgency({ ...input, leadHours: 0, manualUrgency: 25 })
-    const withDefaultLead = calculateUrgency({ ...input, leadHours: 24, manualUrgency: 25 })
-    expect(withDefaultLead).toBeGreaterThan(50)
-    expect(withDefaultLead).toBeGreaterThan(withoutLead)
+    const noBaseline = calculateUrgency({ ...input, manualUrgency: 0 })
+    const withBaseline = calculateUrgency({ ...input, manualUrgency: 25 })
+    expect(withBaseline).toBeGreaterThan(noBaseline)
+    expect(withBaseline).toBeGreaterThan(50)
+  })
+  it('places the curve halfway between its baseline and 100 at the latest safe start', () => {
+    const result = calculateUrgency({ deadline: '2026-01-10T16:00:00.000Z', estimatedEffortMinutes: 120, bufferMinutes: 30, manualUrgency: 25, now: '2026-01-10T13:30:00.000Z' })
+    expect(result).toBeCloseTo(62.5, 4)
   })
   it('returns maximum urgency for overdue tasks', () => {
     expect(calculateUrgency({ deadline: '2026-01-09T12:00:00Z', now: fixedNow })).toBe(100)
@@ -51,6 +50,8 @@ describe('calculateUrgency', () => {
     expect(result).toBeCloseTo(50, 4)
     const earlierInCurve = urgencyToDeadline(25, 0.7, fixedNow.getTime(), 60, 45)
     expect(calculateUrgency({ deadline: earlierInCurve, growthRate: 0.7, estimatedEffortMinutes: 60, bufferMinutes: 45, now: fixedNow })).toBeCloseTo(25, 4)
+    const withBaseline = urgencyToDeadline(60, 0.7, fixedNow.getTime(), 60, 45, 25)
+    expect(calculateUrgency({ deadline: withBaseline, growthRate: 0.7, estimatedEffortMinutes: 60, bufferMinutes: 45, manualUrgency: 25, now: fixedNow })).toBeCloseTo(60, 4)
   })
 })
 
@@ -67,7 +68,5 @@ describe('classification and validation', () => {
     expect(validateTaskDraft({ title: 'Plan', importance: 80 })).toBeNull()
     expect(validateTaskDraft({ title: 'Plan', effort_buffer_minutes: -1 })).toContain('Effort buffer')
     expect(validateTaskDraft({ title: 'Plan', effort_buffer_minutes: 45 })).toBeNull()
-    expect(validateTaskDraft({ title: 'Plan', urgency_lead_hours: -1 })).toContain('Urgency lead time')
-    expect(validateTaskDraft({ title: 'Plan', urgency_lead_hours: 24 })).toBeNull()
   })
 })
