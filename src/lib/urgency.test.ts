@@ -17,6 +17,18 @@ describe('calculateUrgency', () => {
     const input = { deadline: '2026-01-11T12:00:00.000Z', estimatedEffortMinutes: 60, now: '2026-01-11T10:30:00.000Z' }
     expect(calculateUrgency({ ...input, bufferMinutes: 60 })).toBeGreaterThan(calculateUrgency({ ...input, bufferMinutes: 30 }))
   })
+  it('uses the selected urgency as a floor for deadline tasks', () => {
+    const input = { deadline: '2026-01-10T16:00:00.000Z', estimatedEffortMinutes: 120, bufferMinutes: 30, leadHours: 0, now: fixedNow }
+    expect(calculateUrgency({ ...input, manualUrgency: 70 })).toBe(70)
+    expect(calculateUrgency({ ...input, manualUrgency: 25 })).toBeGreaterThan(25)
+  })
+  it('shifts the curve earlier with urgency lead time', () => {
+    const input = { deadline: '2026-01-10T16:00:00.000Z', estimatedEffortMinutes: 120, bufferMinutes: 30, now: fixedNow }
+    const withoutLead = calculateUrgency({ ...input, leadHours: 0, manualUrgency: 25 })
+    const withDefaultLead = calculateUrgency({ ...input, leadHours: 24, manualUrgency: 25 })
+    expect(withDefaultLead).toBeGreaterThan(50)
+    expect(withDefaultLead).toBeGreaterThan(withoutLead)
+  })
   it('returns maximum urgency for overdue tasks', () => {
     expect(calculateUrgency({ deadline: '2026-01-09T12:00:00Z', now: fixedNow })).toBe(100)
   })
@@ -55,5 +67,7 @@ describe('classification and validation', () => {
     expect(validateTaskDraft({ title: 'Plan', importance: 80 })).toBeNull()
     expect(validateTaskDraft({ title: 'Plan', effort_buffer_minutes: -1 })).toContain('Effort buffer')
     expect(validateTaskDraft({ title: 'Plan', effort_buffer_minutes: 45 })).toBeNull()
+    expect(validateTaskDraft({ title: 'Plan', urgency_lead_hours: -1 })).toContain('Urgency lead time')
+    expect(validateTaskDraft({ title: 'Plan', urgency_lead_hours: 24 })).toBeNull()
   })
 })

@@ -15,7 +15,7 @@ Use this checklist to configure Supabase, deploy Atta with GitHub Pages, and con
 
    The environment variable keeps its `ANON_KEY` name for compatibility with the app, but use the publishable key value. Never use a Supabase secret or `service_role` key in frontend code. The publishable key is included in the browser bundle; Row Level Security protects the data.
 
-4. Open the Supabase **SQL Editor** and run the SQL files in `supabase/migrations/` in filename order. If you already ran the initial schema migration, run the next migration file once to add the effort buffer column.
+4. Open the Supabase **SQL Editor** and run the SQL files in `supabase/migrations/` in filename order. If the initial schema is already installed, run each later migration once: `20261029000200_task_effort_buffer.sql` adds the effort buffer and `20261031000100_task_urgency_lead.sql` adds the urgency lead time.
 
 Supabase's [API key guide](https://supabase.com/docs/guides/getting-started/api-keys) explains where to find the values and why publishable keys belong in browser apps.
 

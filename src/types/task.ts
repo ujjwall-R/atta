@@ -8,6 +8,7 @@ export interface Task {
   importance: number
   manual_urgency: number
   urgency_growth_rate: number
+  urgency_lead_hours: number
   deadline: string | null
   estimated_effort_minutes: number | null
   effort_buffer_minutes: number
@@ -17,7 +18,7 @@ export interface Task {
   updated_at: string
 }
 
-export type TaskDraft = Pick<Task, 'title' | 'description' | 'importance' | 'manual_urgency' | 'urgency_growth_rate' | 'deadline' | 'estimated_effort_minutes' | 'effort_buffer_minutes'>
+export type TaskDraft = Pick<Task, 'title' | 'description' | 'importance' | 'manual_urgency' | 'urgency_growth_rate' | 'urgency_lead_hours' | 'deadline' | 'estimated_effort_minutes' | 'effort_buffer_minutes'>
 export type Quadrant = 'do' | 'schedule' | 'batch' | 'eliminate'
 
 export interface Batch {
