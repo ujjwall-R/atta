@@ -42,6 +42,24 @@ export function calculateUrgency(input: UrgencyInput): number {
   return clamp(baseline + (100 - baseline) * curve)
 }
 
+/** Returns the epoch time when a deadline task reaches the requested urgency threshold. */
+export function urgencyThresholdTime(input: UrgencyInput, threshold = 50): number | null {
+  const baseline = clamp(validNumber(input.manualUrgency) ? input.manualUrgency : 0)
+  if (baseline >= threshold || threshold >= 100 || threshold <= baseline) return null
+  const deadline = input.deadline ? new Date(input.deadline).getTime() : Number.NaN
+  if (!Number.isFinite(deadline)) return null
+  const effort = validNumber(input.estimatedEffortMinutes) && input.estimatedEffortMinutes >= 0
+    ? input.estimatedEffortMinutes : DEFAULT_EFFORT_MINUTES
+  const buffer = validNumber(input.bufferMinutes) && input.bufferMinutes >= 0
+    ? input.bufferMinutes : DEFAULT_BUFFER_MINUTES
+  const rate = validNumber(input.growthRate) && input.growthRate > 0 ? input.growthRate : DEFAULT_GROWTH_RATE
+  const midpoint = deadline - (effort + buffer) * 60_000
+  const probability = (threshold - baseline) / (100 - baseline)
+  const logOdds = Math.log(probability / (1 - probability))
+  const timestamp = midpoint + (logOdds / rate) * DAY_MS
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
 export function getQuadrant(urgency: number, importance: number, threshold = 50): Quadrant {
   const urgent = urgency >= threshold
   const important = importance >= threshold

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateUrgency, getQuadrant, urgencyToDeadline } from './urgency'
+import { calculateUrgency, getQuadrant, urgencyThresholdTime, urgencyToDeadline } from './urgency'
 import { validateTaskDraft } from './validation'
 
 const fixedNow = new Date('2026-01-10T12:00:00.000Z')
@@ -27,6 +27,19 @@ describe('calculateUrgency', () => {
   it('places the curve halfway between its baseline and 100 at the latest safe start', () => {
     const result = calculateUrgency({ deadline: '2026-01-10T16:00:00.000Z', estimatedEffortMinutes: 120, bufferMinutes: 30, manualUrgency: 25, now: '2026-01-10T13:30:00.000Z' })
     expect(result).toBeCloseTo(62.5, 4)
+  })
+  it('predicts when a deadline task crosses the urgent threshold', () => {
+    const deadline = '2027-04-30T17:00:00.000Z'
+    const input = { deadline, estimatedEffortMinutes: 5, bufferMinutes: 0, growthRate: 0.7, manualUrgency: 2 }
+    const crossing = urgencyThresholdTime(input)
+    expect(crossing).not.toBeNull()
+    const expected = Date.parse(deadline) - 5 * 60_000 + (Math.log(24 / 25) / 0.7) * 86_400_000
+    expect(crossing).toBeCloseTo(expected, 3)
+    expect(calculateUrgency({ ...input, now: crossing! })).toBeCloseTo(50, 6)
+  })
+  it('does not predict a crossing when urgency is already at the threshold or no deadline exists', () => {
+    expect(urgencyThresholdTime({ deadline: '2027-04-30T17:00:00.000Z', manualUrgency: 50 })).toBeNull()
+    expect(urgencyThresholdTime({ manualUrgency: 20 })).toBeNull()
   })
   it('returns maximum urgency for overdue tasks', () => {
     expect(calculateUrgency({ deadline: '2026-01-09T12:00:00Z', now: fixedNow })).toBe(100)

@@ -3,7 +3,7 @@ import { ChevronDown, Clock3, Trash2 } from 'lucide-react'
 import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 import { Field, TextArea } from '../../components/ui/Field'
-import { DEFAULT_BUFFER_MINUTES, DEFAULT_GROWTH_RATE } from '../../lib/urgency'
+import { calculateUrgency, DEFAULT_BUFFER_MINUTES, DEFAULT_GROWTH_RATE, urgencyThresholdTime } from '../../lib/urgency'
 import { validateTaskDraft } from '../../lib/validation'
 import type { Task, TaskDraft } from '../../types/task'
 
@@ -14,10 +14,15 @@ function toLocalInput(iso: string | null | undefined) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
-export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }: {
+function formatCrossingTime(timestamp: number) {
+  return new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(timestamp))
+}
+
+export function TaskEditor({ open, onClose, task, now, onSave, onComplete, onDelete }: {
   open: boolean
   onClose: () => void
   task?: Task | null
+  now: Date
   onSave: (draft: TaskDraft) => Promise<void>
   onComplete?: (task: Task) => void
   onDelete?: (task: Task) => void
@@ -33,6 +38,27 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
   const [effort, setEffort] = useState('60')
   const [effortBuffer, setEffortBuffer] = useState(String(DEFAULT_BUFFER_MINUTES))
   const [growthRate, setGrowthRate] = useState(String(DEFAULT_GROWTH_RATE))
+
+  const parsedDeadline = deadline ? new Date(deadline) : null
+  const deadlineTimestamp = parsedDeadline?.getTime()
+  const validDeadline = parsedDeadline && Number.isFinite(deadlineTimestamp) ? parsedDeadline.toISOString() : null
+  const effortMinutes = effort.trim() ? Number(effort) : null
+  const bufferMinutes = effortBuffer.trim() ? Number(effortBuffer) : DEFAULT_BUFFER_MINUTES
+  const effectiveGrowthRate = Number(growthRate) > 0 ? Number(growthRate) : DEFAULT_GROWTH_RATE
+  const urgencyInputs = { deadline: validDeadline, estimatedEffortMinutes: effortMinutes, bufferMinutes, growthRate: effectiveGrowthRate, manualUrgency, now }
+  const previewUrgency = calculateUrgency({ ...urgencyInputs, status: task?.status ?? 'open' })
+  const crossingTime = urgencyThresholdTime(urgencyInputs)
+  const urgentQuadrant = importance >= 50 ? 'Do first' : 'Batch'
+  let previewMessage: string
+  if (task?.status === 'completed') previewMessage = 'This task is complete. Reopening it will resume urgency from its deadline.'
+  else if (deadline && !validDeadline) previewMessage = 'Enter a valid deadline to preview when it becomes urgent.'
+  else if (!deadline && manualUrgency >= 50) previewMessage = `Already above 50; it is in ${urgentQuadrant}.`
+  else if (!deadline) previewMessage = `No deadline: urgency stays at ${manualUrgency} and will not cross 50 by itself.`
+  else if (deadlineTimestamp !== undefined && deadlineTimestamp <= now.getTime()) previewMessage = 'The deadline has passed; an open task is at 100 urgency.'
+  else if (manualUrgency >= 50) previewMessage = `Starting urgency is already above 50; it is in ${urgentQuadrant}.`
+  else if (crossingTime === null) previewMessage = 'Could not calculate a crossing time from these settings.'
+  else if (crossingTime <= now.getTime()) previewMessage = `Already above 50; crossed around ${formatCrossingTime(crossingTime)}. It is in ${urgentQuadrant}.`
+  else previewMessage = `Expected to cross 50 around ${formatCrossingTime(crossingTime)} and enter ${urgentQuadrant}.`
 
   useEffect(() => {
     if (!open) return
@@ -79,6 +105,10 @@ export function TaskEditor({ open, onClose, task, onSave, onComplete, onDelete }
       <div className="rounded-2xl border border-[#e6ede6] bg-[#f7faf6] p-4">
         <div className="mb-2 flex items-center justify-between"><div><p className="text-sm font-semibold text-ink">Starting urgency</p><p className="mt-0.5 text-xs text-muted">{deadline ? 'This is the baseline; deadline urgency can rise above it.' : 'No deadline? Atta uses this as the stable urgency.'}</p></div><span className="text-sm font-semibold tabular-nums text-forest">{manualUrgency}</span></div>
         <input aria-label="Starting urgency" type="range" min="0" max="100" value={manualUrgency} onChange={(e) => setManualUrgency(Number(e.target.value))} className="w-full accent-[#285c42]" />
+      </div>
+      <div role="status" aria-live="polite" className="flex items-center justify-between gap-4 rounded-xl border border-[#e6ede6] bg-white px-3.5 py-3">
+        <div><p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-[#819087]">Urgency preview</p><p className="mt-1 text-xs leading-5 text-muted">{previewMessage}</p></div>
+        <span className="shrink-0 rounded-lg bg-[#eff5ea] px-2.5 py-1.5 font-mono text-sm font-semibold tabular-nums text-forest">{Math.round(previewUrgency)}%</span>
       </div>
       <button type="button" onClick={() => setAdvanced(!advanced)} className="flex w-full items-center justify-between rounded-xl px-1 py-1 text-left text-sm font-medium text-muted hover:text-ink"><span className="flex items-center gap-2"><Clock3 size={15} /> Urgency settings</span><ChevronDown size={16} className={`transition-transform ${advanced ? 'rotate-180' : ''}`} /></button>
       {advanced && <div className="space-y-3 rounded-xl border border-line p-3">
